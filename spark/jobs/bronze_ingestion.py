@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from delta.tables import DeltaTable
 from pyspark.sql import functions as F
 
 from common import build_spark, env
 
 
 TOPICS = {
+    "customers": "commerce.commerce.customers",
     "payments": "commerce.commerce.payments",
     "orders": "commerce.commerce.orders",
     "chargebacks": "commerce.commerce.chargebacks",
@@ -39,13 +41,22 @@ def main() -> None:
         F.to_date("timestamp").alias("ingest_date"),
     )
 
+    output_path = f"{lakehouse_root}/bronze/kafka_events"
+    if not DeltaTable.isDeltaTable(spark, output_path):
+        (
+            spark.createDataFrame([], bronze.schema)
+            .write.format("delta")
+            .partitionBy("ingest_date")
+            .save(output_path)
+        )
+
     query = (
         bronze.writeStream.format("delta")
         .outputMode("append")
         .option("checkpointLocation", f"{checkpoint_root}/bronze")
         .partitionBy("ingest_date")
         .trigger(processingTime="5 seconds")
-        .start(f"{lakehouse_root}/bronze/kafka_events")
+        .start(output_path)
     )
     query.awaitTermination()
 

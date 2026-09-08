@@ -23,6 +23,10 @@ Debezium reads PostgreSQL logical replication and records inserts, updates, and 
 
 Bronze keeps `before`, `after`, operation, source metadata, Kafka partition, and offset. Flattening happens later so source history remains auditable and reprocessable.
 
+## Idempotent current-state tables in Silver
+
+Silver reads the Bronze Delta stream and parses both schema-wrapped and schemaless Debezium envelopes. Each micro-batch keeps only the latest source LSN per primary key, then applies inserts, updates, and deletes with Delta `MERGE`. Kafka coordinates and PostgreSQL LSNs remain on every curated row for replay audits. Invalid records are merged into a quarantine table by a deterministic Kafka-coordinate identifier.
+
 ## Labels are separate from payments
 
 Payments do not contain a fraud label. Chargebacks arrive later, reflecting delayed ground truth and preventing accidental label leakage.

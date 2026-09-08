@@ -13,9 +13,9 @@
 ## Milestone 2 — contracts and curated lakehouse
 
 - [ ] Local schema registry and compatibility checks in CI
-- [ ] Silver CDC parser and idempotent Delta merges
+- [x] Silver CDC parser and idempotent Delta merges
 - [ ] Customer/product SCD Type 2 history
-- [ ] Dead-letter and quarantine handling
+- [x] Dead-letter and quarantine handling
 - [ ] Gold retail and fraud aggregates
 
 ## Milestone 3 — stateful fraud

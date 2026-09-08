@@ -129,6 +129,32 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
       LAKEHOUSE_ROOT: /opt/project/data/lakehouse
       CHECKPOINT_ROOT: /opt/project/data/checkpoints
+      PYTHONPATH: /opt/project
+    volumes:
+      - ..:/opt/project
+    mem_limit: 3g
+    restart: unless-stopped
+
+  spark-silver:
+    profiles: ["processing"]
+    image: apache/spark:4.0.1-scala2.13-java17-python3-ubuntu
+    depends_on:
+      spark-bronze:
+        condition: service_started
+    user: "0:0"
+    command:
+      - /opt/spark/bin/spark-submit
+      - --master
+      - local[2]
+      - --driver-memory
+      - 2g
+      - --packages
+      - io.delta:delta-spark_2.13:4.0.1
+      - /opt/project/spark/jobs/silver_cdc.py
+    environment:
+      LAKEHOUSE_ROOT: /opt/project/data/lakehouse
+      CHECKPOINT_ROOT: /opt/project/data/checkpoints
+      PYTHONPATH: /opt/project
     volumes:
       - ..:/opt/project
     mem_limit: 3g
@@ -154,6 +180,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
       LAKEHOUSE_ROOT: /opt/project/data/lakehouse
       CHECKPOINT_ROOT: /opt/project/data/checkpoints
+      PYTHONPATH: /opt/project
     volumes:
       - ..:/opt/project
     mem_limit: 3g

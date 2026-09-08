@@ -9,6 +9,8 @@ A zero-cost, production-pattern e-commerce CDC lakehouse with real-time payment 
 - Apache Kafka in single-node KRaft mode with internal and host listeners.
 - A deterministic Python workload generator with labeled fraud scenarios.
 - Spark Structured Streaming Bronze ingestion with Kafka lineage metadata.
+- Idempotent Silver Delta merges for customers, orders, payments, and chargebacks.
+- Data-quality quarantine keyed by Kafka partition and offset.
 - A first explainable fraud scorer that writes decisions to Delta Lake.
 - Avro contracts and unit tests for the scoring rules.
 
@@ -29,6 +31,7 @@ make up
 make register-connector
 make generate EVENTS=1000 RATE=25
 make bronze
+make silver
 make fraud
 make verify-pipeline
 make status
@@ -37,7 +40,7 @@ make status
 The Spark services are continuous streaming jobs. Inspect them with:
 
 ```bash
-docker compose -f infra/compose.yaml --env-file .env --profile processing logs -f spark-bronze spark-fraud
+docker compose -f infra/compose.yaml --env-file .env --profile processing logs -f spark-bronze spark-silver spark-fraud
 ```
 
 Local Delta output is written under `data/lakehouse`, checkpoints under `data/checkpoints`,
@@ -64,7 +67,7 @@ Labels are emitted separately as chargeback rows after a configurable number of 
 
 ## Data
 
-Milestone one is entirely synthetic and requires no download. The next milestone will add an importer for the free Olist Brazilian e-commerce dataset. Raw third-party data will remain outside Git.
+The current local pipeline is entirely synthetic and requires no dataset download. A later milestone will add an importer for the free Olist Brazilian e-commerce dataset. Raw third-party data will remain outside Git.
 
 ## Repository map
 
@@ -81,4 +84,4 @@ data/                   Git-ignored local lakehouse/checkpoint storage
 
 ## Current boundary
 
-This is the first runnable vertical slice. Stateful velocity features, Silver CDC merges, Gold tables, Olist ingestion, Grafana, Airflow, failure drills, benchmarks, and Databricks notebooks are deliberately tracked in `docs/roadmap.md` rather than hidden behind placeholder code.
+This is the first runnable vertical slice with current-state Silver tables. Stateful velocity features, SCD Type 2 dimensions, Gold tables, Olist ingestion, Grafana, Airflow, failure drills, benchmarks, and Databricks notebooks are deliberately tracked in `docs/roadmap.md` rather than hidden behind placeholder code.

@@ -4,7 +4,7 @@ SPARK_PACKAGES := io.delta:delta-spark_2.13:4.0.1,org.apache.spark:spark-sql-kaf
 EVENTS ?= 1000
 RATE ?= 25
 
-.PHONY: init validate test up down status topics register-connector generate bronze fraud verify-pipeline logs clean-data
+.PHONY: init validate test up down status topics register-connector generate bronze silver fraud verify-pipeline logs clean-data
 
 init:
 	@test -f .env || cp .env.example .env
@@ -37,6 +37,9 @@ generate:
 
 bronze:
 	$(COMPOSE) --profile processing up -d spark-bronze
+
+silver:
+	$(COMPOSE) --profile processing up -d spark-silver
 
 fraud:
 	$(COMPOSE) --profile processing up -d spark-fraud
