@@ -206,8 +206,23 @@ services:
       - /opt/project/spark/jobs/gold_analytics.py
     environment:
       LAKEHOUSE_ROOT: /opt/project/data/lakehouse
+      DASHBOARD_EXPORT_PATH: /opt/project/data/exports/dashboard.json
       PYTHONPATH: /opt/project
     volumes:
       - ..:/opt/project
     mem_limit: 2g
     restart: "no"
+
+  dashboard:
+    profiles: ["dashboard"]
+    image: python:3.12-alpine
+    command: ["python", "-m", "http.server", "8080", "--directory", "/site"]
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ../dashboard/index.html:/site/index.html:ro
+      - ../dashboard/styles.css:/site/styles.css:ro
+      - ../dashboard/app.js:/site/app.js:ro
+      - ../data/exports:/site/data:ro
+    mem_limit: 64m
+    restart: unless-stopped

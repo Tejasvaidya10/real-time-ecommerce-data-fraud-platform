@@ -35,6 +35,10 @@ Payments do not contain a fraud label. Chargebacks arrive later, reflecting dela
 
 Gold joins current payments to explainable fraud decisions and delayed chargebacks, then produces daily business KPIs, daily fraud KPIs, seller performance, and customer 360 tables. Gold is a bounded snapshot refresh rather than another always-on stream because its inputs include mutable current-state tables and cross-domain joins. Delta overwrite commits each table atomically; reconciliation gates prevent an incomplete Silver or fraud snapshot from being published as a successful refresh. In production, an orchestrator would run this job after upstream freshness checks.
 
+## Aggregate-only dashboard boundary
+
+The Gold refresh atomically replaces a small JSON dashboard snapshot after all Delta tables are published. The export contains daily aggregates, anonymized seller ranks, aggregated customer risk segments, freshness, and quality counts; it excludes entity and transaction identifiers. A 64 MB static web container reads the export through a read-only mount and binds only to `127.0.0.1`. This keeps the portfolio interface free, lightweight, and private while preserving a clear production mapping to a BI serving API or governed warehouse.
+
 ## Explainable rules before ML
 
 The first decision engine uses deterministic rules. This isolates pipeline correctness from model quality and produces reason codes suitable for operational review. A time-split ML model is a later enhancement.

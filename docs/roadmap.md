@@ -36,6 +36,7 @@
 
 ## Milestone 5 — portfolio surface
 
+- [x] Local commerce and fraud command-center dashboard
 - [ ] Olist importer and accelerated replay
 - [ ] Databricks Free Edition notebooks
 - [ ] Databricks SQL dashboard

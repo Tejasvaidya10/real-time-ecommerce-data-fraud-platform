@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from decimal import Decimal
+from pathlib import Path
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
 from common import build_spark, env
 from src.gold.contracts import GOLD_TABLE_BY_NAME
+from src.gold.dashboard_export import validate_dashboard_payload
 
 
 def read_delta(spark, path: str) -> DataFrame:
@@ -23,10 +26,33 @@ def write_gold(frame: DataFrame, path: str) -> None:
     )
 
 
+def json_value(value):
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return float(value)
+    raise TypeError(f"Cannot serialize {type(value).__name__} to dashboard JSON")
+
+
+def write_dashboard_export(payload: dict, output_path: str) -> None:
+    target = Path(output_path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = target.with_suffix(f"{target.suffix}.tmp")
+    temporary.write_text(
+        json.dumps(payload, default=json_value, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    temporary.replace(target)
+
+
 def main() -> None:
     spark = build_spark("ecommerce-gold-analytics")
     spark.sparkContext.setLogLevel("WARN")
     lakehouse_root = env("LAKEHOUSE_ROOT", "/opt/project/data/lakehouse")
+    dashboard_export_path = env(
+        "DASHBOARD_EXPORT_PATH",
+        "/opt/project/data/exports/dashboard.json",
+    )
     refreshed_at = datetime.now(timezone.utc)
 
     customers = read_delta(spark, f"{lakehouse_root}/silver/customers")
@@ -272,13 +298,22 @@ def main() -> None:
         raise RuntimeError("Gold table implementation does not match its contracts")
 
     row_counts = {}
+    published_tables = {}
     for table_name, frame in tables.items():
         output_path = f"{lakehouse_root}/gold/{table_name}"
         write_gold(frame, output_path)
-        row_counts[table_name] = read_delta(spark, output_path).count()
+        published_tables[table_name] = read_delta(spark, output_path)
+        row_counts[table_name] = published_tables[table_name].count()
 
     enriched.unpersist()
     summary = {
+        "refreshed_at": refreshed_at.isoformat(),
+        "bronze_records": read_delta(
+            spark, f"{lakehouse_root}/bronze/kafka_events"
+        ).count(),
+        "quarantine_records": read_delta(
+            spark, f"{lakehouse_root}/quarantine/cdc_records"
+        ).count(),
         "source_customers": customers.count(),
         "source_orders": orders.count(),
         "source_payments": payments.count(),
@@ -286,6 +321,49 @@ def main() -> None:
         "source_chargebacks": chargebacks.count(),
         "gold_row_counts": dict(sorted(row_counts.items())),
     }
+    seller_watchlist = []
+    seller_rows = (
+        published_tables["seller_performance"]
+        .orderBy(
+            F.col("confirmed_chargeback_count").desc(),
+            F.col("flagged_rate_pct").desc(),
+            F.col("gross_payment_value").desc(),
+        )
+        .drop("seller_id", "latest_payment_at", "refreshed_at")
+        .limit(8)
+        .collect()
+    )
+    for rank, row in enumerate(seller_rows, start=1):
+        seller_watchlist.append({"seller_rank": rank, **row.asDict(recursive=True)})
+
+    customer_risk_segments = [
+        row.asDict(recursive=True)
+        for row in (
+            published_tables["customer_360"]
+            .groupBy("customer_risk_segment")
+            .count()
+            .collect()
+        )
+    ]
+    dashboard_payload = {
+        "metadata": summary,
+        "daily_business_kpis": [
+            row.asDict(recursive=True)
+            for row in published_tables["daily_business_kpis"]
+            .drop("refreshed_at")
+            .collect()
+        ],
+        "daily_fraud_kpis": [
+            row.asDict(recursive=True)
+            for row in published_tables["daily_fraud_kpis"]
+            .drop("refreshed_at")
+            .collect()
+        ],
+        "seller_risk_watchlist": seller_watchlist,
+        "customer_risk_segments": customer_risk_segments,
+    }
+    validate_dashboard_payload(dashboard_payload)
+    write_dashboard_export(dashboard_payload, dashboard_export_path)
     print(f"GOLD_SUMMARY={json.dumps(summary, sort_keys=True)}")
     spark.stop()
 

@@ -14,6 +14,7 @@ A zero-cost, production-pattern e-commerce CDC lakehouse with real-time payment 
 - A first explainable fraud scorer that writes decisions to Delta Lake.
 - Transactional Gold analytics for daily business KPIs, daily fraud KPIs,
   seller performance, and customer 360 reporting.
+- A responsive local command-center dashboard for commerce and fraud operations.
 - Avro contracts and unit tests for the scoring rules.
 
 The local topology intentionally uses one Kafka broker, replication factor one, and Spark `local[2]`. `docs/architecture.md` explains the production mapping.
@@ -35,7 +36,7 @@ make generate EVENTS=1000 RATE=25
 make bronze
 make silver
 make fraud
-make gold
+make dashboard
 make verify-pipeline
 make status
 ```
@@ -64,6 +65,17 @@ safe without accumulating duplicate aggregates.
 
 Metric definitions and reconciliation rules are documented in `docs/gold-metrics.md`.
 
+## Local dashboard
+
+`make dashboard` refreshes Gold, writes an aggregate-only dashboard snapshot, and starts
+the interface at `http://127.0.0.1:8080`. The service binds only to localhost. Its JSON
+feed contains no customer, payment, transaction, or seller identifiers and remains under
+the Git-ignored `data/exports` directory.
+
+The first viewport combines GMV, payment volume, current customers, active sellers,
+flagged rate, chargeback rate, fraud decisions, and value at risk. Seller rankings are
+anonymized; customer data is presented only as aggregated risk segments.
+
 ## Useful endpoints
 
 | Service | Address |
@@ -71,6 +83,7 @@ Metric definitions and reconciliation rules are documented in `docs/gold-metrics
 | PostgreSQL | `localhost:5432` |
 | Kafka | `localhost:9092` |
 | Kafka Connect REST | `http://localhost:8083` |
+| Commerce Risk dashboard | `http://127.0.0.1:8080` |
 
 ## Fraud scenarios in milestone one
 
@@ -94,6 +107,7 @@ infra/                 Docker Compose and database initialization
 schemas/               Avro event contracts
 src/generator/         Deterministic operational workload generator
 spark/jobs/            Structured Streaming jobs
+dashboard/             Local aggregate-only portfolio dashboard
 scripts/               Local lifecycle helpers
 tests/                 Dependency-free unit tests
 docs/                  Architecture decisions and roadmap
@@ -102,4 +116,4 @@ data/                   Git-ignored local lakehouse/checkpoint storage
 
 ## Current boundary
 
-This is a runnable Bronze/Silver/Gold vertical slice with real-time CDC and fraud decisions. Stateful velocity features, SCD Type 2 dimensions, Olist ingestion, Grafana, Airflow, failure drills, benchmarks, and Databricks notebooks are deliberately tracked in `docs/roadmap.md` rather than hidden behind placeholder code.
+This is a runnable Bronze/Silver/Gold vertical slice with real-time CDC, fraud decisions, reconciled analytics, and a local dashboard. Stateful velocity features, SCD Type 2 dimensions, Olist ingestion, Grafana, Airflow, failure drills, benchmarks, and Databricks notebooks are deliberately tracked in `docs/roadmap.md` rather than hidden behind placeholder code.

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Operational dashboard for the real-time e-commerce and fraud detection platform." />
+    <title>Commerce Risk Command Center</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Real-time e-commerce platform</p>
+          <h1>Commerce Risk Command Center</h1>
+        </div>
+        <div class="freshness" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span><strong>Gold snapshot ready</strong><small id="refreshedAt">Loading refresh time…</small></span>
+        </div>
+      </header>
+
+      <div id="errorState" class="error-state" role="alert" hidden>
+        Dashboard data is unavailable. Run <code>make dashboard</code> after the pipeline is ready.
+      </div>
+
+      <section class="kpi-grid" aria-label="Commerce and risk key performance indicators">
+        <article class="kpi-card kpi-primary"><span>Gross payment value</span><strong id="grossPaymentValue">—</strong><small id="currencyContext">Current Gold snapshot</small></article>
+        <article class="kpi-card"><span>Payments</span><strong id="paymentCount">—</strong><small><span id="uniqueCustomers">—</span> current customers</small></article>
+        <article class="kpi-card"><span>Active sellers</span><strong id="activeSellers">—</strong><small>With current payments</small></article>
+        <article class="kpi-card risk-card"><span>Flagged rate</span><strong id="flaggedRate">—</strong><small>Review + decline decisions</small></article>
+        <article class="kpi-card danger-card"><span>Chargeback rate</span><strong id="chargebackRate">—</strong><small><span id="chargebackCount">—</span> confirmed outcomes</small></article>
+      </section>
+
+      <section class="analytics-grid">
+        <article class="panel decision-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Fraud operations</p><h2>Decision distribution</h2></div><span class="version-pill" id="rulesVersion">—</span></div>
+          <div class="decision-layout">
+            <div id="decisionDonut" class="donut" role="img" aria-label="Loading fraud decisions"><div><strong id="decisionTotal">—</strong><span>decisions</span></div></div>
+            <dl class="legend">
+              <div><dt><i class="approve"></i>Approve</dt><dd id="approvedCount">—</dd></div>
+              <div><dt><i class="review"></i>Review</dt><dd id="reviewCount">—</dd></div>
+              <div><dt><i class="decline"></i>Decline</dt><dd id="declinedCount">—</dd></div>
+            </dl>
+          </div>
+        </article>
+
+        <article class="panel exposure-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Value at risk</p><h2>Fraud exposure</h2></div></div>
+          <div class="exposure-metrics">
+            <div><span>Declined value</span><strong id="declinedAmount">—</strong></div>
+            <div><span>Review value</span><strong id="reviewAmount">—</strong></div>
+            <div><span>Confirmed fraud</span><strong id="confirmedFraudAmount">—</strong></div>
+            <div><span>Average risk score</span><strong id="averageRiskScore">—</strong></div>
+          </div>
+        </article>
+
+        <article class="panel seller-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Marketplace operations</p><h2>Seller risk watchlist</h2></div><small>Ranked by confirmed exposure</small></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">Rank</th><th scope="col">Payments</th><th scope="col">GMV</th><th scope="col">Flagged</th><th scope="col">Chargebacks</th></tr></thead>
+              <tbody id="sellerRows"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel customer-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Customer 360</p><h2>Risk segments</h2></div><small id="customerTotal">— customers</small></div>
+          <div id="riskSegments" class="segment-list"></div>
+        </article>
+      </section>
+
+      <section class="panel pipeline-panel">
+        <div class="panel-heading">
+          <div><p class="eyebrow">Data lineage</p><h2>Operational pipeline</h2></div>
+          <div class="quality-badge"><span></span><strong id="qualityStatus">Checking quality…</strong></div>
+        </div>
+        <ol class="lineage" aria-label="Pipeline stages">
+          <li><span>01</span><strong>PostgreSQL</strong><small>Commerce OLTP</small></li>
+          <li><span>02</span><strong>Debezium</strong><small>Change data capture</small></li>
+          <li><span>03</span><strong>Kafka</strong><small id="bronzeEvents">— events</small></li>
+          <li><span>04</span><strong>Spark</strong><small>Streaming + rules</small></li>
+          <li><span>05</span><strong>Delta Lake</strong><small>Bronze · Silver · Gold</small></li>
+        </ol>
+      </section>
+    </main>
+    <script src="app.js" defer></script>
+  </body>
+</html>
