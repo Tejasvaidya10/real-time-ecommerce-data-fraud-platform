@@ -19,6 +19,14 @@ Production mapping:
 
 Debezium reads PostgreSQL logical replication and records inserts, updates, and deletes. This preserves ordering information and avoids timestamp polling gaps.
 
+## Real history as accelerated CDC replay
+
+The Olist importer maps public source keys to stable, namespaced UUIDs and commits
+orders in configurable batches. This exercises the same PostgreSQL-to-Debezium-to-
+Kafka path as live transactions while finishing historical backfills quickly.
+Conflict-safe inserts make overlapping replays idempotent. Seller-specific product
+listings preserve the operational schema's one-seller-per-product invariant.
+
 ## Raw Debezium envelopes in Bronze
 
 Bronze keeps `before`, `after`, operation, source metadata, Kafka partition, and offset. Flattening happens later so source history remains auditable and reprocessable.

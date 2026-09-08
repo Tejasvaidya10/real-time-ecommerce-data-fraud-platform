@@ -15,6 +15,8 @@ A zero-cost, production-pattern e-commerce CDC lakehouse with real-time payment 
 - Transactional Gold analytics for daily business KPIs, daily fraud KPIs,
   seller performance, and customer 360 reporting.
 - A responsive local command-center dashboard for commerce and fraud operations.
+- An idempotent Olist historical replay through PostgreSQL, Debezium, Kafka, and Spark.
+- Databricks Free Edition notebooks for Olist Bronze, Silver, Gold, risk analytics, and dashboard datasets.
 - Avro contracts and unit tests for the scoring rules.
 
 The local topology intentionally uses one Kafka broker, replication factor one, and Spark `local[2]`. `docs/architecture.md` explains the production mapping.
@@ -40,6 +42,19 @@ make dashboard
 make verify-pipeline
 make status
 ```
+
+To add real Olist history after placing the nine CSV files in
+`data/olist/archive`, run a safe 10,000-order slice:
+
+```bash
+make olist-replay ORDERS=10000 BATCH_SIZE=500
+make gold
+make verify-pipeline
+```
+
+Use `ORDERS=0` only when you want all 99,441 source orders. Replaying the same
+slice is safe: namespaced UUIDs and database conflict handling prevent duplicate
+business records. The CSV files remain ignored by Git.
 
 The Spark services are continuous streaming jobs. Inspect them with:
 
@@ -96,9 +111,20 @@ anonymized; customer data is presented only as aggregated risk segments.
 
 Labels are emitted separately as chargeback rows after a configurable number of later events. Payment records never contain the ground-truth fraud label.
 
-## Data
+## Real data and Databricks
 
-The current local pipeline is entirely synthetic and requires no dataset download. A later milestone will add an importer for the free Olist Brazilian e-commerce dataset. Raw third-party data will remain outside Git.
+The Olist dataset comes from the public [Brazilian E-Commerce Public Dataset by
+Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce). It contains
+real commerce behavior but no verified fraud labels. The local replay therefore
+feeds Olist payments through the same explainable decision path without inventing
+chargebacks. The Databricks Gold notebook creates a clearly labeled heuristic risk
+proxy for exploratory triage, while the synthetic stream supplies delayed, known
+fraud labels for evaluation.
+
+Run the notebooks in `databricks/notebooks` using `databricks/README.md`. They use
+a Unity Catalog volume and managed Delta tables, so no paid storage account or
+always-on cluster is needed for this portfolio path. Raw CSV data is uploaded
+manually and is never committed.
 
 ## Repository map
 
@@ -106,8 +132,10 @@ The current local pipeline is entirely synthetic and requires no dataset downloa
 infra/                 Docker Compose and database initialization
 schemas/               Avro event contracts
 src/generator/         Deterministic operational workload generator
+src/olist/             Idempotent real-data historical replay
 spark/jobs/            Structured Streaming jobs
 dashboard/             Local aggregate-only portfolio dashboard
+databricks/             Free Edition medallion notebooks and runbook
 scripts/               Local lifecycle helpers
 tests/                 Dependency-free unit tests
 docs/                  Architecture decisions and roadmap
@@ -116,4 +144,8 @@ data/                   Git-ignored local lakehouse/checkpoint storage
 
 ## Current boundary
 
-This is a runnable Bronze/Silver/Gold vertical slice with real-time CDC, fraud decisions, reconciled analytics, and a local dashboard. Stateful velocity features, SCD Type 2 dimensions, Olist ingestion, Grafana, Airflow, failure drills, benchmarks, and Databricks notebooks are deliberately tracked in `docs/roadmap.md` rather than hidden behind placeholder code.
+This is a runnable Bronze/Silver/Gold platform with real-time CDC, explainable
+fraud decisions, real Olist historical replay, reconciled analytics, a local
+dashboard, and a Databricks medallion implementation. Stateful velocity features,
+SCD Type 2 dimensions, orchestration, failure drills, and million-event benchmarks
+remain explicitly tracked in `docs/roadmap.md`.

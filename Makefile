@@ -3,8 +3,10 @@ COMPOSE := docker compose -f infra/compose.yaml --env-file .env
 SPARK_PACKAGES := io.delta:delta-spark_2.13:4.0.1,org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.1
 EVENTS ?= 1000
 RATE ?= 25
+ORDERS ?= 10000
+BATCH_SIZE ?= 500
 
-.PHONY: init validate test up down status topics register-connector generate bronze silver fraud gold dashboard verify-pipeline logs clean-data
+.PHONY: init validate test up down status topics register-connector generate olist-replay bronze silver fraud gold dashboard verify-pipeline logs clean-data
 
 init:
 	@test -f .env || cp .env.example .env
@@ -35,6 +37,9 @@ register-connector:
 generate:
 	$(COMPOSE) --profile tools run --rm --build -e GENERATOR_EVENTS=$(EVENTS) -e GENERATOR_RATE=$(RATE) generator
 
+olist-replay:
+	$(COMPOSE) --profile tools run --rm --build -e OLIST_ORDER_LIMIT=$(ORDERS) -e OLIST_BATCH_SIZE=$(BATCH_SIZE) olist-importer
+
 bronze:
 	$(COMPOSE) --profile processing up -d spark-bronze
 
@@ -45,7 +50,7 @@ fraud:
 	$(COMPOSE) --profile processing up -d spark-fraud
 
 gold:
-	$(COMPOSE) --profile processing --profile tools run --rm spark-gold
+	$(COMPOSE) --profile processing --profile analytics run --rm spark-gold
 
 dashboard: gold
 	$(COMPOSE) --profile dashboard up -d dashboard

@@ -109,6 +109,24 @@ services:
     restart: "no"
     mem_limit: 256m
 
+  olist-importer:
+    profiles: ["tools"]
+    build:
+      context: ..
+      dockerfile: src/olist/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-commerce}:${POSTGRES_PASSWORD:-commerce_dev_only}@postgres:5432/${POSTGRES_DB:-commerce}
+      OLIST_DATA_DIR: /opt/project/data/olist/archive
+      OLIST_ORDER_LIMIT: ${OLIST_ORDER_LIMIT:-10000}
+      OLIST_BATCH_SIZE: ${OLIST_BATCH_SIZE:-500}
+    volumes:
+      - ../data/olist:/opt/project/data/olist:ro
+    restart: "no"
+    mem_limit: 768m
+
   spark-bronze:
     profiles: ["processing"]
     image: apache/spark:4.0.1-scala2.13-java17-python3-ubuntu
@@ -187,7 +205,7 @@ services:
     restart: unless-stopped
 
   spark-gold:
-    profiles: ["tools"]
+    profiles: ["analytics"]
     image: apache/spark:4.0.1-scala2.13-java17-python3-ubuntu
     depends_on:
       spark-silver:
