@@ -5,5 +5,6 @@ __pycache__/
 .pytest_cache/
 data/lakehouse/
 data/checkpoints/
+data/runtime/
 data/olist/*.csv
 data/exports/

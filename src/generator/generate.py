@@ -10,6 +10,8 @@ from decimal import Decimal
 
 import psycopg
 
+from src.generator.purchase_selection import choose_normal_purchase
+
 
 REGIONS = ("US-NY", "US-CA", "US-TX", "US-FL", "US-WA")
 CATEGORIES = ("electronics", "home", "books", "sports", "beauty")
@@ -111,16 +113,19 @@ def generate_workload(conn: psycopg.Connection, customers: list[Customer], produ
 
     for sequence in range(event_count):
         customer = rng.choice(customers)
-        product = rng.choice(products)
-        quantity = rng.randint(1, 3)
-        normal_amount = max(float(product.unit_price * quantity), float(customer.average_amount) * rng.uniform(0.5, 1.5))
+        product_index, quantity, normal_amount = choose_normal_purchase(
+            customer.average_amount,
+            [product.unit_price for product in products],
+            rng,
+        )
+        product = products[product_index]
         scenario = rng.choices(
             ("LEGITIMATE", "HIGH_AMOUNT", "ACCOUNT_TAKEOVER", "RETRY_ABUSE"),
             weights=(990, 3, 5, 2),
             k=1,
         )[0]
 
-        amount = round(normal_amount, 2)
+        amount = round(float(normal_amount), 2)
         device_id = customer.trusted_device
         is_new_device = False
         ip_region = customer.home_region
@@ -129,9 +134,13 @@ def generate_workload(conn: psycopg.Connection, customers: list[Customer], produ
         attempt_number = 1
 
         if scenario == "HIGH_AMOUNT":
-            amount = round(max(300.0, float(customer.average_amount) * 4.5), 2)
+            product = max(products, key=lambda candidate: candidate.unit_price)
+            quantity = 3
+            amount = round(float(product.unit_price * quantity), 2)
         elif scenario == "ACCOUNT_TAKEOVER":
-            amount = round(max(350.0, float(customer.average_amount) * 5.0), 2)
+            product = max(products, key=lambda candidate: candidate.unit_price)
+            quantity = 3
+            amount = round(float(product.unit_price * quantity), 2)
             device_id = f"device-untrusted-{sequence:08d}"
             is_new_device = True
             ip_region = rng.choice(tuple(region for region in REGIONS if region != customer.home_region))

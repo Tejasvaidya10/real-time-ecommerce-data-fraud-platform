@@ -30,6 +30,7 @@ make register-connector
 make generate EVENTS=1000 RATE=25
 make bronze
 make fraud
+make verify-pipeline
 make status
 ```
 
@@ -39,7 +40,8 @@ The Spark services are continuous streaming jobs. Inspect them with:
 docker compose -f infra/compose.yaml --env-file .env --profile processing logs -f spark-bronze spark-fraud
 ```
 
-Local Delta output is written under `data/lakehouse` and checkpoints under `data/checkpoints`.
+Local Delta output is written under `data/lakehouse`, checkpoints under `data/checkpoints`,
+and PostgreSQL/Kafka runtime files under `data/runtime`. All three paths are ignored by Git.
 
 ## Useful endpoints
 

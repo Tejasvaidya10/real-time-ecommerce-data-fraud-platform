@@ -8,6 +8,21 @@ from common import build_spark, env
 PAYMENTS_TOPIC = "commerce.commerce.payments"
 
 
+def debezium_field(json_column: str, field: str):
+    """Read a field from either schema-wrapped or schemaless Debezium JSON."""
+    return F.coalesce(
+        F.get_json_object(json_column, f"$.payload.after.{field}"),
+        F.get_json_object(json_column, f"$.after.{field}"),
+    )
+
+
+def debezium_operation(json_column: str):
+    return F.coalesce(
+        F.get_json_object(json_column, "$.payload.op"),
+        F.get_json_object(json_column, "$.op"),
+    )
+
+
 def main() -> None:
     spark = build_spark("ecommerce-fraud-decisions")
     spark.sparkContext.setLogLevel("WARN")
@@ -25,19 +40,19 @@ def main() -> None:
     )
 
     payment = raw.select(
-        F.get_json_object("json", "$.after.transaction_id").alias("transaction_id"),
-        F.get_json_object("json", "$.after.event_id").alias("event_id"),
-        F.get_json_object("json", "$.after.customer_id").alias("customer_id"),
-        F.get_json_object("json", "$.after.event_time").cast("long").alias("event_time_micros"),
-        F.get_json_object("json", "$.after.amount").cast("double").alias("amount"),
-        F.get_json_object("json", "$.after.customer_average_amount").cast("double").alias("customer_average_amount"),
-        F.get_json_object("json", "$.after.is_new_device").cast("boolean").alias("is_new_device"),
-        F.get_json_object("json", "$.after.ip_region").alias("ip_region"),
-        F.get_json_object("json", "$.after.home_region").alias("home_region"),
-        F.get_json_object("json", "$.after.shipping_region").alias("shipping_region"),
-        F.get_json_object("json", "$.after.login_failures").cast("int").alias("login_failures"),
-        F.get_json_object("json", "$.after.attempt_number").cast("int").alias("attempt_number"),
-        F.get_json_object("json", "$.op").alias("cdc_operation"),
+        debezium_field("json", "transaction_id").alias("transaction_id"),
+        debezium_field("json", "event_id").alias("event_id"),
+        debezium_field("json", "customer_id").alias("customer_id"),
+        debezium_field("json", "event_time").cast("long").alias("event_time_micros"),
+        debezium_field("json", "amount").cast("double").alias("amount"),
+        debezium_field("json", "customer_average_amount").cast("double").alias("customer_average_amount"),
+        debezium_field("json", "is_new_device").cast("boolean").alias("is_new_device"),
+        debezium_field("json", "ip_region").alias("ip_region"),
+        debezium_field("json", "home_region").alias("home_region"),
+        debezium_field("json", "shipping_region").alias("shipping_region"),
+        debezium_field("json", "login_failures").cast("int").alias("login_failures"),
+        debezium_field("json", "attempt_number").cast("int").alias("attempt_number"),
+        debezium_operation("json").alias("cdc_operation"),
         "kafka_timestamp",
     ).filter(F.col("cdc_operation").isin("c", "r") & F.col("transaction_id").isNotNull())
 

@@ -10,7 +10,7 @@ Production mapping:
 |---|---|
 | One Kafka broker, RF=1 | Three or more brokers across failure domains, RF=3 |
 | Spark `local[2]` | Autoscaled Spark cluster with separate driver and executors |
-| Docker volume | Replicated object storage |
+| Project-local bind-mounted storage | Replicated object storage |
 | Plaintext listeners | TLS, authentication, authorization, and secret management |
 | One Connect worker | Distributed Kafka Connect worker group |
 | Local checkpoints | Durable object-storage checkpoints |
