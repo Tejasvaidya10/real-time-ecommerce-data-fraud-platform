@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "ChargebackEvent",
+  "namespace": "io.ecommercefraud.chargeback.v1",
+  "fields": [
+    {"name": "chargeback_id", "type": "string"},
+    {"name": "transaction_id", "type": "string"},
+    {"name": "reported_at", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "reason", "type": "string"}
+  ]
+}

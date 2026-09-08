@@ -1,0 +1,26 @@
+{
+  "type": "record",
+  "name": "PaymentEvent",
+  "namespace": "io.ecommercefraud.payment.v1",
+  "fields": [
+    {"name": "event_id", "type": "string"},
+    {"name": "transaction_id", "type": "string"},
+    {"name": "order_id", "type": "string"},
+    {"name": "customer_id", "type": "string"},
+    {"name": "seller_id", "type": "string"},
+    {"name": "event_time", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "amount", "type": "double"},
+    {"name": "currency", "type": "string", "default": "USD"},
+    {"name": "payment_type", "type": "string"},
+    {"name": "device_id", "type": "string"},
+    {"name": "is_new_device", "type": "boolean", "default": false},
+    {"name": "ip_region", "type": "string"},
+    {"name": "home_region", "type": "string"},
+    {"name": "shipping_region", "type": "string"},
+    {"name": "account_age_days", "type": "int"},
+    {"name": "login_failures", "type": "int", "default": 0},
+    {"name": "attempt_number", "type": "int", "default": 1},
+    {"name": "customer_average_amount", "type": "double"},
+    {"name": "status", "type": "string"}
+  ]
+}

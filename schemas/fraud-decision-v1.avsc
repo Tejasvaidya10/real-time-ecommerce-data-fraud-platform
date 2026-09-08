@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "FraudDecision",
+  "namespace": "io.ecommercefraud.risk.v1",
+  "fields": [
+    {"name": "decision_id", "type": "string"},
+    {"name": "transaction_id", "type": "string"},
+    {"name": "risk_score", "type": "int"},
+    {"name": "action", "type": {"type": "enum", "name": "Action", "symbols": ["APPROVE", "REVIEW", "DECLINE"]}},
+    {"name": "reason_codes", "type": {"type": "array", "items": "string"}},
+    {"name": "rules_version", "type": "string"},
+    {"name": "decision_time", "type": {"type": "long", "logicalType": "timestamp-millis"}}
+  ]
+}
