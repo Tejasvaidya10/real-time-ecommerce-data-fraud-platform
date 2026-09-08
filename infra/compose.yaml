@@ -185,3 +185,29 @@ services:
       - ..:/opt/project
     mem_limit: 3g
     restart: unless-stopped
+
+  spark-gold:
+    profiles: ["tools"]
+    image: apache/spark:4.0.1-scala2.13-java17-python3-ubuntu
+    depends_on:
+      spark-silver:
+        condition: service_started
+      spark-fraud:
+        condition: service_started
+    user: "0:0"
+    command:
+      - /opt/spark/bin/spark-submit
+      - --master
+      - local[2]
+      - --driver-memory
+      - 1g
+      - --packages
+      - io.delta:delta-spark_2.13:4.0.1
+      - /opt/project/spark/jobs/gold_analytics.py
+    environment:
+      LAKEHOUSE_ROOT: /opt/project/data/lakehouse
+      PYTHONPATH: /opt/project
+    volumes:
+      - ..:/opt/project
+    mem_limit: 2g
+    restart: "no"

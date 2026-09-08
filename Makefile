@@ -4,7 +4,7 @@ SPARK_PACKAGES := io.delta:delta-spark_2.13:4.0.1,org.apache.spark:spark-sql-kaf
 EVENTS ?= 1000
 RATE ?= 25
 
-.PHONY: init validate test up down status topics register-connector generate bronze silver fraud verify-pipeline logs clean-data
+.PHONY: init validate test up down status topics register-connector generate bronze silver fraud gold verify-pipeline logs clean-data
 
 init:
 	@test -f .env || cp .env.example .env
@@ -43,6 +43,9 @@ silver:
 
 fraud:
 	$(COMPOSE) --profile processing up -d spark-fraud
+
+gold:
+	$(COMPOSE) --profile processing --profile tools run --rm spark-gold
 
 verify-pipeline:
 	$(COMPOSE) --profile processing exec -T spark-fraud /opt/spark/bin/spark-submit --master local[1] --driver-memory 512m --packages $(SPARK_PACKAGES) /opt/project/spark/jobs/verify_pipeline.py

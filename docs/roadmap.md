@@ -16,7 +16,7 @@
 - [x] Silver CDC parser and idempotent Delta merges
 - [ ] Customer/product SCD Type 2 history
 - [x] Dead-letter and quarantine handling
-- [ ] Gold retail and fraud aggregates
+- [x] Gold retail and fraud aggregates
 
 ## Milestone 3 — stateful fraud
 

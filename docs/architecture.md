@@ -31,6 +31,10 @@ Silver reads the Bronze Delta stream and parses both schema-wrapped and schemale
 
 Payments do not contain a fraud label. Chargebacks arrive later, reflecting delayed ground truth and preventing accidental label leakage.
 
+## Transactional serving tables in Gold
+
+Gold joins current payments to explainable fraud decisions and delayed chargebacks, then produces daily business KPIs, daily fraud KPIs, seller performance, and customer 360 tables. Gold is a bounded snapshot refresh rather than another always-on stream because its inputs include mutable current-state tables and cross-domain joins. Delta overwrite commits each table atomically; reconciliation gates prevent an incomplete Silver or fraud snapshot from being published as a successful refresh. In production, an orchestrator would run this job after upstream freshness checks.
+
 ## Explainable rules before ML
 
 The first decision engine uses deterministic rules. This isolates pipeline correctness from model quality and produces reason codes suitable for operational review. A time-split ML model is a later enhancement.

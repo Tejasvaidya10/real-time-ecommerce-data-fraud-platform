@@ -2,7 +2,7 @@
 
 A zero-cost, production-pattern e-commerce CDC lakehouse with real-time payment fraud detection. It is tuned for a 16 GB Apple Silicon Mac and runs locally with Docker Desktop.
 
-## What the first milestone contains
+## What the platform currently contains
 
 - PostgreSQL operational tables for customers, sellers, products, inventory, orders, payments, and delayed chargebacks.
 - Debezium PostgreSQL CDC through Kafka Connect.
@@ -12,6 +12,8 @@ A zero-cost, production-pattern e-commerce CDC lakehouse with real-time payment 
 - Idempotent Silver Delta merges for customers, orders, payments, and chargebacks.
 - Data-quality quarantine keyed by Kafka partition and offset.
 - A first explainable fraud scorer that writes decisions to Delta Lake.
+- Transactional Gold analytics for daily business KPIs, daily fraud KPIs,
+  seller performance, and customer 360 reporting.
 - Avro contracts and unit tests for the scoring rules.
 
 The local topology intentionally uses one Kafka broker, replication factor one, and Spark `local[2]`. `docs/architecture.md` explains the production mapping.
@@ -33,6 +35,7 @@ make generate EVENTS=1000 RATE=25
 make bronze
 make silver
 make fraud
+make gold
 make verify-pipeline
 make status
 ```
@@ -45,6 +48,21 @@ docker compose -f infra/compose.yaml --env-file .env --profile processing logs -
 
 Local Delta output is written under `data/lakehouse`, checkpoints under `data/checkpoints`,
 and PostgreSQL/Kafka runtime files under `data/runtime`. All three paths are ignored by Git.
+
+## Gold analytics
+
+`make gold` performs a deterministic batch refresh from the current Silver snapshot. Each
+table is replaced with a new Delta transaction, which makes scheduled reruns and backfills
+safe without accumulating duplicate aggregates.
+
+| Table | Grain | Primary use |
+|---|---|---|
+| `daily_business_kpis` | Date and currency | Payment volume, customer reach, GMV, and chargebacks |
+| `daily_fraud_kpis` | Date and rules version | Decisions, flagged value, confirmed fraud, and rates |
+| `seller_performance` | Seller | GMV, customer reach, fraud exposure, and chargeback rate |
+| `customer_360` | Customer | Lifetime value, activity, fraud history, and risk segment |
+
+Metric definitions and reconciliation rules are documented in `docs/gold-metrics.md`.
 
 ## Useful endpoints
 
@@ -84,4 +102,4 @@ data/                   Git-ignored local lakehouse/checkpoint storage
 
 ## Current boundary
 
-This is the first runnable vertical slice with current-state Silver tables. Stateful velocity features, SCD Type 2 dimensions, Gold tables, Olist ingestion, Grafana, Airflow, failure drills, benchmarks, and Databricks notebooks are deliberately tracked in `docs/roadmap.md` rather than hidden behind placeholder code.
+This is a runnable Bronze/Silver/Gold vertical slice with real-time CDC and fraud decisions. Stateful velocity features, SCD Type 2 dimensions, Olist ingestion, Grafana, Airflow, failure drills, benchmarks, and Databricks notebooks are deliberately tracked in `docs/roadmap.md` rather than hidden behind placeholder code.
