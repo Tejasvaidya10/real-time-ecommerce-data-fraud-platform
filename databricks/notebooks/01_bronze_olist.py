@@ -49,7 +49,8 @@ for table_name, columns in TABLE_COLUMNS.items():
         .option("mode", "FAILFAST")
         .schema(string_schema(columns))
         .csv(f"{source_path}/{file_name}")
-        .withColumn("_source_file", F.input_file_name())
+        # Unity Catalog file sources expose lineage through the hidden metadata struct.
+        .withColumn("_source_file", F.col("_metadata.file_path"))
         .withColumn("_ingested_at", F.current_timestamp())
     )
     target = f"`{catalog}`.`{bronze_schema}`.`olist_{table_name}`"
