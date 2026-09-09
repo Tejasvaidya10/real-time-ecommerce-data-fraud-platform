@@ -43,10 +43,16 @@ TABLE_COLUMNS = {
 
 for table_name, columns in TABLE_COLUMNS.items():
     file_name = f"olist_{table_name}_dataset.csv" if table_name != "product_category_name_translation" else f"{table_name}.csv"
-    frame = (
+    reader = (
         spark.read
         .option("header", "true")
         .option("mode", "FAILFAST")
+    )
+    if table_name == "order_reviews":
+        # Free-text reviews contain quoted line breaks and escaped quote characters.
+        reader = reader.option("multiLine", "true").option("escape", '"')
+    frame = (
+        reader
         .schema(string_schema(columns))
         .csv(f"{source_path}/{file_name}")
         # Unity Catalog file sources expose lineage through the hidden metadata struct.

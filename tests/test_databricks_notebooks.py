@@ -20,6 +20,12 @@ class DatabricksNotebookTest(unittest.TestCase):
         self.assertIn('F.col("_metadata.file_path")', source)
         self.assertNotIn("input_file_name", source)
 
+    def test_bronze_handles_multiline_review_comments(self):
+        source = (NOTEBOOK_ROOT / "01_bronze_olist.py").read_text()
+        self.assertIn('table_name == "order_reviews"', source)
+        self.assertIn('.option("multiLine", "true")', source)
+        self.assertIn('.option("escape", \'"\')', source)
+
 
 if __name__ == "__main__":
     unittest.main()
